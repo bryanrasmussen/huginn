@@ -656,13 +656,14 @@ describe Agents::WebsiteAgent do
         expect(event.payload['hovertext']).to match(/^Biologists play reverse/)
       end
 
-      it "should turn relative urls to absolute" do
+      it "should turn relative urls to absolute if resolve_url is true" do
         rel_site = {
           'name' => "XKCD",
           'expected_update_period_in_days' => "2",
           'type' => "html",
           'url' => "http://xkcd.com",
           'mode' => "on_change",
+          'resolve_url' => 'true',
           'extract' => {
             'url' => {'css' => "#topLeft a", 'value' => "@href"},
           }
@@ -1178,6 +1179,7 @@ fire: hot
             @checker.options = @valid_options.merge(
               'type' => 'json',
               'data_from_event' => '{{ some_object.some_data }}',
+              'resolve_url' => 'true',
               'extract' => {
                 'value' => { 'path' => 'hello' },
                 'url' => { 'path' => 'href' },
@@ -1335,6 +1337,9 @@ fire: hot
         'mode' => 'all',
         'extract' => {
           'url' => { 'css' => "a", 'value' => "@href" },
+        },
+        'template' => {
+          'url' => '{{ url | to_uri }}',
         }
       }
       @checker = Agents::WebsiteAgent.new(:name => "ua", :options => @valid_options)

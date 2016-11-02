@@ -26,8 +26,7 @@ module Agents
       * Set the `url_from_event` option to a Liquid template to generate the url to access based on the Event.  (To fetch the url in the Event's `url` key, for example, set `url_from_event` to `{{ url }}`.)
       * Alternatively, set `data_from_event` to a Liquid template to use data directly without fetching any URL.  (For example, set it to `{{ html }}` to use HTML contained in the `html` key of the incoming Event.)
       * If you specify `merge` for the `mode` option, Huginn will retain the old payload and update it with new values.
-
-      If a created Event has a key named `url` containing a relative URL, it is automatically resolved using the request URL as base.
+      * If you set the `resolve_url` option to true, a relative URL in each Event's `url` key will be normalized and resolved to an absolute URL using the request URL as base.  It is recommended that you use the `template` option to take full control of how to transform extracted values into an Event.
 
       # Supported Document Types
 
@@ -116,7 +115,7 @@ module Agents
       If a `template` option is given, it is used as a Liquid template for each event created by this Agent, instead of directly emitting the results of extraction as events.  In the template, keys of extracted data can be interpolated, and some additional variables are also available as explained in the next section.  For example:
 
           "template": {
-            "url": "{{ url }}",
+            "url": "{{ url | to_uri: _request_.url }}",
             "title": "{{ title }}",
             "description": "{{ body_text }}",
             "last_modified": "{{ _response_.headers.Last-Modified | date: '%FT%T' }}"
@@ -404,8 +403,10 @@ module Agents
             extracted
           end
 
-        # url may be URI, string or nil
-        if (payload_url = result['url'].presence) && (url = url.presence)
+        # url may be a URI object, string or nil
+        if boolify(interpolated['resolve_url']) &&
+           (payload_url = result['url'].presence) &&
+           (url = url.presence)
           begin
             result['url'] = (Utils.normalize_uri(url) + Utils.normalize_uri(payload_url)).to_s
           rescue URI::Error
